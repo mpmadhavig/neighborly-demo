@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Home, Calendar, Gift, BookOpen, Star, Phone } from 'lucide-react';
-import { useAsgardeoApi } from '@/hooks/useAsgardeoApi';
 
 interface NavigationProps {
   activeTab: string;
@@ -8,24 +7,6 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
-
-    const { initiateRegistrationFlow } = useAsgardeoApi(); // Uncomment after installing @asgardeo/auth-react
-    
-    useEffect(() => {
-        console.log('Navigation component rendered with activeTab:', activeTab);
-        if (activeTab === 'booking') {
-            document.title = 'Molly Maid® - Booking';
-            handleBookNowClick();
-        }
-    }, [activeTab]);
-
-    const handleBookNowClick = async () => {
-        try {
-            await initiateRegistrationFlow();
-        } catch (error) {
-        console.error('Error during registration flow:', error);
-        }
-    };
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50 border-b-4 border-[#CF0557]">
