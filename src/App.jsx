@@ -10,6 +10,13 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MollyMaidApp />} />
+          <Route path="/home" element={<MollyMaidApp />} />
+          <Route path="/services" element={<MollyMaidApp />} />
+          <Route path="/booking" element={<MollyMaidApp />} />
+          <Route path="/blog" element={<MollyMaidApp />} />
+          <Route path="/gifts" element={<MollyMaidApp />} />
+          <Route path="/dashboard" element={<MollyMaidApp />} />
+          <Route path="/payment" element={<MollyMaidApp />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -10,15 +10,34 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({ setActiveTab, setSelectedService }) => {
   return (
     <div className="space-y-12">
-      <div className="bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white rounded-2xl p-8 md:p-12">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Professional House Cleaning Services</h1>
-        <p className="text-xl mb-6">Trusted for 40+ years to get the job done right</p>
-        <button 
-          onClick={() => setActiveTab('booking')}
-          className="bg-white text-[#CF0557] px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition"
+      {/* Hero Section with Full Background Image */}
+      <div className="relative rounded-2xl overflow-hidden h-[500px] md:h-[600px]">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/mly-hero-v2-desktop.png')" }}
         >
-          Request Free Estimate
-        </button>
+          {/* Gradient Overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#071D49]/80 via-[#071D49]/60 to-transparent"></div>
+        </div>
+        
+        {/* Content */}
+        <div className="relative h-full flex items-center px-6 md:px-16 lg:px-24">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-white drop-shadow-lg">
+              Professional House Cleaning Services
+            </h1>
+            <p className="text-xl md:text-2xl lg:text-3xl mb-10 text-white drop-shadow-md">
+              Trusted for 40+ years to get the job done right
+            </p>
+            <button 
+              onClick={() => setActiveTab('booking')}
+              className="bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white px-10 py-5 rounded-lg font-semibold hover:opacity-90 transition shadow-xl text-lg md:text-xl"
+            >
+              Request Free Estimate
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">

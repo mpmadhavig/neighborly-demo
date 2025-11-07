@@ -14,6 +14,9 @@ interface BookingPageProps {
   otp?: string;
   setOtp?: (otp: string) => void;
   handleOtpSubmit?: (e: React.FormEvent) => void;
+  showSuccessBanner?: boolean;
+  handleSignIn?: () => void;
+  handleAcceptQuotation?: () => void;
 }
 
 export const BookingPage: React.FC<BookingPageProps> = ({ 
@@ -23,7 +26,10 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   showOtpInput = false,
   otp = '',
   setOtp,
-  handleOtpSubmit
+  handleOtpSubmit,
+  showSuccessBanner = false,
+  handleSignIn,
+  handleAcceptQuotation
 }) => {
   return (
     <div className="max-w-3xl mx-auto">
@@ -32,7 +38,62 @@ export const BookingPage: React.FC<BookingPageProps> = ({
         Fill out the form below and we'll contact you to schedule your cleaning service
       </p>
 
-      {showOtpInput ? (
+      {showSuccessBanner ? (
+        <div className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-400 rounded-xl p-8 shadow-lg">
+          <div className="text-center">
+            <div className="mb-4">
+              <svg className="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-green-800 mb-2">Registration Successful!</h2>
+            <p className="text-lg text-green-700 mb-4">
+              Your quotation has been sent to your email. Check your inbox for details.
+            </p>
+            <p className="text-md text-green-600 mb-6">
+              📧 Access your email to view the quotation, or sign in to your dashboard.
+            </p>
+            
+            {/* Quotation Summary */}
+            <div className="bg-white border-2 border-green-400 rounded-lg p-6 mb-6">
+              <h3 className="text-xl font-bold text-[#071D49] mb-4">Your Quotation</h3>
+              <div className="space-y-2 text-left">
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Standard Cleaning</span>
+                  <span className="font-semibold">$80.00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Bathroom Cleaning</span>
+                  <span className="font-semibold">$50.00</span>
+                </div>
+                <div className="flex justify-between text-green-600">
+                  <span>Special Discount</span>
+                  <span className="font-semibold">-$20.00</span>
+                </div>
+                <div className="border-t-2 border-gray-300 pt-2 mt-2 flex justify-between text-xl font-bold text-[#071D49]">
+                  <span>Total</span>
+                  <span>$150.00</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={handleAcceptQuotation}
+                className="bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md text-lg"
+              >
+                Accept & Proceed to Payment
+              </button>
+              <button
+                onClick={handleSignIn}
+                className="bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md text-lg"
+              >
+                Sign In to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : showOtpInput ? (
         <div className="bg-white border-2 border-[#FB4D94] rounded-xl p-8 space-y-6 shadow-lg">
           <div className="text-center mb-4">
             <h2 className="text-2xl font-bold text-[#071D49] mb-2">Verify Your Email</h2>
@@ -53,8 +114,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
           </div>
 
           <button
-            onClick={handleOtpSubmit}
-            className="w-full bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
+            type="submit"
+            className="w-full bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
           >
             Verify OTP
           </button>
@@ -103,7 +164,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
           <button
             onClick={handleSubmit}
-            className="w-full bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
+            className="w-full bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
           >
             Request Free Estimate
           </button>

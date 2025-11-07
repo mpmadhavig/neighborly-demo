@@ -38,7 +38,7 @@ export const GiftsPage: React.FC<GiftsPageProps> = ({ setActiveTab }) => {
 
       <button 
         onClick={() => setActiveTab('booking')}
-        className="bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
+        className="bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
       >
         Purchase Gift Certificate
       </button>
