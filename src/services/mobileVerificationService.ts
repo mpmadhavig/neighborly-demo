@@ -30,6 +30,11 @@ export const validateMobileVerificationCode = async (
       }),
     });
 
+    // Success is indicated by 202 Accepted status
+    if (response.status === 202) {
+      return { success: true };
+    }
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Mobile verification API error:', errorData);
@@ -43,7 +48,7 @@ export const validateMobileVerificationCode = async (
       );
     }
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     console.log('✅ Mobile verification code validated successfully:', data);
 
     return { success: true };

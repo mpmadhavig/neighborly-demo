@@ -46,6 +46,7 @@ export default function MollyMaidApp() {
   const [showMobileVerification, setShowMobileVerification] = useState(false);
   const [profileSubmitted, setProfileSubmitted] = useState(false);
   const [isProfileFromToken, setIsProfileFromToken] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [registeredUserEmail, setRegisteredUserEmail] = useState<string>(''); // Store email for profile update
   const [profileData, setProfileData] = useState({
     firstName: '',
@@ -134,7 +135,7 @@ export default function MollyMaidApp() {
           console.log('User info from ID token:', userInfo);
           
           // If no data in ID token, try userinfo endpoint
-          if (!userInfo?.given_name || !userInfo?.family_name || !userInfo?.phone_number) {
+          if (!userInfo?.given_name || !userInfo?.family_name || !userInfo?.phone_number || !userInfo?.phone_number_verified) {
             try {
               const accessToken = await authContext.getAccessToken();
               const response = await fetch(`https://api.asgardeo.io/t/vihanga3/oauth2/userinfo`, {
@@ -152,6 +153,13 @@ export default function MollyMaidApp() {
             }
           }
           
+          console.log("userInfo", userInfo);
+
+          // Check phone verification status
+          const phoneVerified = userInfo?.phone_number_verified === true || userInfo?.phone_number_verified === 'true';
+          setIsPhoneVerified(phoneVerified);
+          console.log('Phone number verified status:', phoneVerified);
+          
           // Pre-fill profile data if available
           if (userInfo) {
             const hasProfileData = userInfo.given_name || userInfo.family_name || userInfo.phone_number;
@@ -162,6 +170,12 @@ export default function MollyMaidApp() {
               lastName: userInfo.family_name || prev.lastName,
               mobileNumber: userInfo.phone_number || prev.mobileNumber,
             }));
+
+            // If phone is already verified and we have complete profile data, auto-submit
+            if (phoneVerified && userInfo.given_name && userInfo.family_name && userInfo.phone_number) {
+              console.log('📱 Phone verified and profile complete - auto-submitting to show payment section');
+              setProfileSubmitted(true);
+            }
           }
         } catch (error) {
           console.error('Error loading user info:', error);
@@ -343,9 +357,8 @@ export default function MollyMaidApp() {
         
         if (!accessToken) {
           console.warn('No access token available, skipping profile update');
-          // Continue to mobile verification
+          // Continue to payment (skip mobile verification)
           setProfileSubmitted(true);
-          setShowMobileVerification(true);
           return;
         }
 
@@ -363,15 +376,25 @@ export default function MollyMaidApp() {
         if (!result.success) {
           console.warn('⚠️ Profile update failed:', result.error);
           console.info('💡 Profile data has been collected and will be available in the application context');
-          // Continue to mobile verification anyway
+          // Continue to payment (skip mobile verification)
+          setProfileSubmitted(true);
+          return;
         } else {
           console.log('✅ Profile updated successfully in Asgardeo!');
-          console.log('📱 Mobile verification code should be sent automatically by Asgardeo');
         }
         
-        // Show mobile verification step
-        setProfileSubmitted(true);
-        setShowMobileVerification(true);
+        // Check if phone is already verified
+        if (isPhoneVerified) {
+          console.log('📱 Phone number is already verified, skipping mobile verification step');
+          setProfileSubmitted(true);
+          // Skip mobile verification, go directly to payment
+        } else {
+          console.log('📱 Phone number not verified, prompting for mobile verification');
+          console.log('📱 Mobile verification code should be sent automatically by Asgardeo');
+          // Show mobile verification step
+          setProfileSubmitted(true);
+          setShowMobileVerification(true);
+        }
       } else {
         // User is not authenticated (coming from registration flow)
         console.log('User not authenticated - profile data collected for later use');
@@ -383,9 +406,8 @@ export default function MollyMaidApp() {
     } catch (error) {
       console.error('Error in profile submission:', error);
       // Don't show error to user, just log and continue
-      console.warn('Continuing to mobile verification despite error');
+      console.warn('Continuing to payment despite error');
       setProfileSubmitted(true);
-      setShowMobileVerification(true);
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -480,6 +502,14 @@ export default function MollyMaidApp() {
     // This will show the profile form again with current data, allowing user to edit
   };
 
+  const handleEditMobileNumber = () => {
+    console.log('User wants to edit mobile number from payment section');
+    setProfileSubmitted(false);
+    setIsProfileFromToken(false); // Make fields editable
+    setIsPhoneVerified(false); // Reset verification status
+    // This will show the profile form again with current data, allowing user to edit mobile number
+  };
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -494,8 +524,8 @@ export default function MollyMaidApp() {
       
       // Sign in with login_hint parameter and force login
       authContext.signIn({
-        login_hint: 'payment',
-        prompt: 'login'
+        login_hint: "payment",
+        prompt: "none"
       });
       
       // Reset payment data
@@ -634,6 +664,7 @@ export default function MollyMaidApp() {
             quotationAmount={150.00}
             profileSubmitted={profileSubmitted}
             showPayment={!showMobileVerification}
+            onEditMobileNumber={handleEditMobileNumber}
           />
         )}
         {activeTab === 'booking' && showMobileVerification && (

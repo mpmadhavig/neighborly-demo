@@ -26,6 +26,7 @@ interface ProfileAndPaymentPageProps {
   quotationAmount: number;
   profileSubmitted?: boolean;
   showPayment?: boolean; // Control when to show payment section
+  onEditMobileNumber?: () => void; // Callback to edit mobile number
 }
 
 export const ProfileAndPaymentPage: React.FC<ProfileAndPaymentPageProps> = ({ 
@@ -39,7 +40,8 @@ export const ProfileAndPaymentPage: React.FC<ProfileAndPaymentPageProps> = ({
   isProfileFromToken = false,
   quotationAmount,
   profileSubmitted = false,
-  showPayment = true
+  showPayment = true,
+  onEditMobileNumber
 }) => {
   const isProfileComplete = profileData.firstName && profileData.lastName && profileData.mobileNumber;
   const [isEditable, setIsEditable] = useState(!isProfileFromToken);
@@ -102,6 +104,20 @@ export const ProfileAndPaymentPage: React.FC<ProfileAndPaymentPageProps> = ({
                 >
                   <Edit2 size={18} />
                   Edit Profile Information
+                </button>
+              </div>
+            )}
+
+            {/* Edit Mobile Number button when profile is submitted and payment is showing */}
+            {profileSubmitted && showPayment && onEditMobileNumber && (
+              <div className="flex justify-end -mt-2 mb-4">
+                <button
+                  type="button"
+                  onClick={onEditMobileNumber}
+                  className="flex items-center gap-2 text-[#CF0557] hover:text-[#a00444] font-semibold transition"
+                >
+                  <Edit2 size={18} />
+                  Edit Mobile Number
                 </button>
               </div>
             )}

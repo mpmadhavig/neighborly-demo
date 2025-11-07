@@ -141,7 +141,7 @@ export const MobileVerificationPage: React.FC<MobileVerificationPageProps> = ({
                 type="text"
                 value={verificationCode}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
+                  const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
                   if (value.length <= 6) {
                     setVerificationCode(value);
                     setError('');
@@ -155,7 +155,7 @@ export const MobileVerificationPage: React.FC<MobileVerificationPageProps> = ({
               />
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              Enter the 6-digit code sent to your mobile number
+              Enter the 6-character alphanumeric code sent to your mobile
             </p>
           </div>
 
