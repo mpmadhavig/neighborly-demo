@@ -94,7 +94,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
           </div>
         </div>
       ) : showOtpInput ? (
-        <div className="bg-white border-2 border-[#FB4D94] rounded-xl p-8 space-y-6 shadow-lg">
+        <form onSubmit={handleOtpSubmit} className="bg-white border-2 border-[#FB4D94] rounded-xl p-8 space-y-6 shadow-lg">
           <div className="text-center mb-4">
             <h2 className="text-2xl font-bold text-[#071D49] mb-2">Verify Your Email</h2>
             <p className="text-gray-600">Enter the OTP sent to your email</p>
@@ -119,9 +119,9 @@ export const BookingPage: React.FC<BookingPageProps> = ({
           >
             Verify OTP
           </button>
-        </div>
+        </form>
       ) : (
-        <div className="bg-white border-2 border-[#FB4D94] rounded-xl p-8 space-y-6 shadow-lg">
+        <form onSubmit={handleSubmit} className="bg-white border-2 border-[#FB4D94] rounded-xl p-8 space-y-6 shadow-lg">
           <div>
             <label className="block text-sm font-semibold mb-2 text-[#071D49]">Email *</label>
             <input
@@ -163,12 +163,12 @@ export const BookingPage: React.FC<BookingPageProps> = ({
           </div>
 
           <button
-            onClick={handleSubmit}
+            type="submit"
             className="w-full bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
           >
             Request Free Estimate
           </button>
-        </div>
+        </form>
       )}
 
       <div className="mt-8 bg-green-50 border-2 border-green-300 rounded-xl p-6">
