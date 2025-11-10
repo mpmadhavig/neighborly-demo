@@ -404,7 +404,7 @@ const getMrElectricPromotionalEmail = (email, customerName) => {
               </ul>
 
               <center>
-                <a href="https://mrelectric.com/" class="cta-button">
+                <a href="http://localhost:8081" class="cta-button">
                   ⚡ Schedule Your Service Now ⚡
                 </a>
               </center>
@@ -417,7 +417,7 @@ const getMrElectricPromotionalEmail = (email, customerName) => {
               <p style="margin-top: 30px;">Have questions? Our friendly team is ready to help!</p>
               <p>
                 📞 Call us at <strong style="color: #003DA5;">1-888-MRELECTRIC</strong><br>
-                🌐 Visit us at <a href="https://mrelectric.com/" style="color: #003DA5;">mrelectric.com</a><br>
+                🌐 Visit us at <a href="http://localhost:8081" style="color: #003DA5;">mrelectric.com</a><br>
                 📧 Email us at <a href="mailto:info@mrelectric.com" style="color: #003DA5;">info@mrelectric.com</a>
               </p>
               
@@ -468,7 +468,7 @@ const getMrElectricPromotionalEmail = (email, customerName) => {
       ✓ Safety First - Code Compliant
       ✓ Upfront Pricing - No Hidden Fees
       
-      Schedule your service: https://mrelectric.com/
+      Schedule your service: http://localhost:8081
       Call us: 1-888-MRELECTRIC
       Email: info@mrelectric.com
       
