@@ -176,6 +176,37 @@ export const generateQuotationPDF = async (email, address, zipCode) => {
            align: 'justify' 
          });
 
+      // View Quotation Link Section
+      doc.moveDown(2);
+      const linkBoxY = doc.y;
+      doc.rect(50, linkBoxY, 500, 60)
+         .fillColor('#F0F9FF')
+         .fill()
+         .strokeColor('#CF0557')
+         .lineWidth(2)
+         .stroke();
+
+      doc.fillColor('#071D49')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text('View Your Quotation Online', 60, linkBoxY + 10);
+
+      doc.moveDown(0.3);
+      const quotationUrl = `http://localhost:8080/quotation?email=${encodeURIComponent(email)}`;
+      doc.fillColor('#CF0557')
+         .fontSize(10)
+         .font('Helvetica')
+         .text(quotationUrl, 60, doc.y, {
+           link: quotationUrl,
+           underline: true,
+           width: 480
+         });
+
+      doc.fillColor('#666666')
+         .fontSize(9)
+         .font('Helvetica-Oblique')
+         .text('Click the link above to view and manage your quotation online', 60, doc.y + 5);
+
       // Footer
       doc.moveDown(2);
       const footerY = doc.page.height - 100;

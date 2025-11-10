@@ -64,7 +64,7 @@ export const ProfileAndPaymentPage: React.FC<ProfileAndPaymentPageProps> = ({
           <div>
             <h2 className="text-3xl font-bold text-[#071D49] flex items-center gap-3">
               {profileSubmitted && <Check className="text-green-600" size={32} />}
-              Your Profile
+              Complete the below infor to proceed to payment
             </h2>
             {profileSubmitted && (
               <p className="text-green-600 font-semibold mt-1">Profile information confirmed</p>

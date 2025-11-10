@@ -83,6 +83,7 @@ export const updateMyProfile = async (
     console.log('Updating current user profile via SCIM /Me API:', {
       endpoint: scimMeEndpoint,
       payload,
+      mobileNumber: profileData.mobileNumber, // Log the exact mobile number being sent
     });
 
     const response = await fetch(scimMeEndpoint, {
@@ -95,11 +96,18 @@ export const updateMyProfile = async (
       body: JSON.stringify(payload),
     });
 
+    console.log('SCIM /Me API response status:', response.status, response.statusText);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('SCIM /Me API error:', errorData);
+      console.error('SCIM /Me API error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        mobileNumber: profileData.mobileNumber,
+      });
       throw new Error(
-        `Failed to update profile: ${response.status} ${response.statusText}`
+        `Failed to update profile: ${response.status} ${response.statusText}. Mobile: ${profileData.mobileNumber}`
       );
     }
 

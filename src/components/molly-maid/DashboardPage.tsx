@@ -4,10 +4,17 @@ import { Calendar, FileText, DollarSign, Star } from 'lucide-react';
 
 interface DashboardPageProps {
   onAcceptQuotation?: () => void;
+  onNavigateToPayments?: () => void;
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ onAcceptQuotation }) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onAcceptQuotation, onNavigateToPayments }) => {
   const { state } = useAuthContext();
+
+  const handleAcceptQuotation = () => {
+    if (onNavigateToPayments) {
+      onNavigateToPayments();
+    }
+  };
 
   if (!state.isAuthenticated) {
     return null;
@@ -100,7 +107,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onAcceptQuotation 
         </div>
         <div className="mt-6 flex gap-4">
           <button 
-            onClick={onAcceptQuotation}
+            onClick={handleAcceptQuotation}
             className="flex-1 bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
           >
             Accept Quotation

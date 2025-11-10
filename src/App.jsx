@@ -16,6 +16,7 @@ function App() {
           <Route path="/blog" element={<MollyMaidApp />} />
           <Route path="/gifts" element={<MollyMaidApp />} />
           <Route path="/dashboard" element={<MollyMaidApp />} />
+          <Route path="/payments" element={<MollyMaidApp />} />
           <Route path="/payment" element={<MollyMaidApp />} />
         </Routes>
       </BrowserRouter>

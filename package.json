@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mr-electric": "vite --config vite.config.mr-electric.ts",
+    "dev:both": "concurrently \"npm run dev\" \"npm run dev:mr-electric\"",
     "server": "node server/index.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
+    "dev:all-brands": "concurrently \"npm run dev\" \"npm run dev:mr-electric\" \"npm run server\"",
     "build": "vite build",
+    "build:mr-electric": "vite build --config vite.config.mr-electric.ts",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:mr-electric": "vite preview --config vite.config.mr-electric.ts --port 8081"
   },
   "dependencies": {
     "@asgardeo/auth-react": "^5.4.3",
@@ -83,6 +88,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "patch-package": "^8.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",

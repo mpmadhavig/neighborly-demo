@@ -85,6 +85,12 @@ export const resendMobileVerificationCode = async (
       }),
     });
 
+    // Success is indicated by 201 Created status
+    if (response.status === 201) {
+      console.log('✅ Verification code resent successfully (201)');
+      return { success: true };
+    }
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Resend code API error:', errorData);
@@ -93,7 +99,7 @@ export const resendMobileVerificationCode = async (
       );
     }
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     console.log('✅ Verification code resent successfully:', data);
 
     return { success: true };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Calendar, Gift, BookOpen, Star, Phone, LayoutDashboard } from 'lucide-react';
+import { Home, Calendar, Gift, BookOpen, Star, Phone, LayoutDashboard, CreditCard } from 'lucide-react';
 import { UserProfile } from './UserProfile';
 
 interface NavigationProps {
@@ -76,6 +76,17 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
             <BookOpen className="w-4 h-4" />
             Blog
           </button>
+          {isAuthenticated && (
+            <button
+              onClick={() => setActiveTab('payments')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
+                activeTab === 'payments' ? 'bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
+              }`}
+            >
+              <CreditCard className="w-4 h-4" />
+              Payments
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('gifts')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
