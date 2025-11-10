@@ -67,6 +67,17 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
   const [emailSent, setEmailSent] = useState(false);
   const [showConfirmationBanner, setShowConfirmationBanner] = useState(false);
 
+  // Auto-select quotation from URL query parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const quotationParam = urlParams.get('quotation');
+    
+    if (quotationParam && !selectedQuotation) {
+      console.log('Auto-selecting quotation from URL:', quotationParam);
+      setSelectedQuotation(quotationParam);
+    }
+  }, [selectedQuotation]);
+
   // Auto-dismiss confirmation banner after modal is closed
   useEffect(() => {
     if (showConfirmationBanner && !showPaymentSuccess) {
@@ -413,6 +424,20 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
         paidQuotation.status = 'paid';
         console.log(`✅ Quotation ${paidQuotation.id} marked as paid`);
 
+        // Trigger sign-in with login_hint=payment for profile enrichment
+        console.log('Payment confirmed - triggering sign-in with login_hint=payment');
+        
+        Object.keys(window.sessionStorage).forEach((key) => {
+            if (key.startsWith('session_data-instance_0-')) {
+            window.sessionStorage.removeItem(key);
+            }
+        });
+        authContext.signIn({
+            acr_values: "payment",
+            prompt: "",
+            signInRedirectURL: "http://localhost:8080"
+        });
+
         // Show success modal and confirmation banner
         setShowPaymentSuccess(true);
         setShowConfirmationBanner(true);
@@ -555,6 +580,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
                   setPaymentDetails(null);
                   // Keep banner visible for user to dismiss manually
                   // setShowConfirmationBanner(false);
+                  
                   if (onPaymentComplete) {
                     onPaymentComplete();
                   }
