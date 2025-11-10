@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Calendar, Gift, BookOpen, Star, Phone, LayoutDashboard, CreditCard } from 'lucide-react';
+import { Home, Calendar, Star, Phone, LayoutDashboard, CreditCard, CalendarCheck, FileText } from 'lucide-react';
 import { UserProfile } from './UserProfile';
 
 interface NavigationProps {
@@ -29,17 +29,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
           </div>
         </div>
         <div className="flex gap-2 overflow-x-auto">
-          {isAuthenticated && (
-            <button
-              onClick={() => setActiveTab('dashboard')}
-                            className={`px-4 py-2 rounded-lg font-semibold transition ${
-                activeTab === 'dashboard' ? 'bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              Dashboard
-            </button>
-          )}
           <button
             onClick={() => setActiveTab('home')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
@@ -50,15 +39,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
             Home
           </button>
           <button
-            onClick={() => setActiveTab('services')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
-              activeTab === 'services' ? 'bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
-            }`}
-          >
-            <Star className="w-4 h-4" />
-            Services
-          </button>
-          <button
             onClick={() => setActiveTab('booking')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
               activeTab === 'booking' ? 'bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
@@ -67,15 +47,28 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
             <Calendar className="w-4 h-4" />
             Book Now
           </button>
-          <button
-            onClick={() => setActiveTab('blog')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
-              activeTab === 'blog' ? 'bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            Blog
-          </button>
+          {isAuthenticated && (
+            <button
+              onClick={() => setActiveTab('quotations')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
+                activeTab === 'quotations' ? 'bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Quotations
+            </button>
+          )}
+          {isAuthenticated && (
+            <button
+              onClick={() => setActiveTab('appointments')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
+                activeTab === 'appointments' ? 'bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
+              }`}
+            >
+              <CalendarCheck className="w-4 h-4" />
+              Appointments
+            </button>
+          )}
           {isAuthenticated && (
             <button
               onClick={() => setActiveTab('payments')}
@@ -87,15 +80,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
               Payments
             </button>
           )}
-          <button
-            onClick={() => setActiveTab('gifts')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
-              activeTab === 'gifts' ? 'bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
-            }`}
-          >
-            <Gift className="w-4 h-4" />
-            Gift Certificates
-          </button>
+          
         </div>
       </div>
     </nav>

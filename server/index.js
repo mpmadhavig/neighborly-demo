@@ -27,7 +27,7 @@ const getRegistrationEmailTemplate = (email, address, zipCode) => {
   return {
     to: email,
     from: process.env.SENDGRID_FROM_EMAIL, // Must be verified sender in SendGrid
-    subject: 'Welcome to Molly Maid - Your Quotation is Ready!',
+    subject: 'Molly Maid - Quotation Ready!',
     html: `
       <!DOCTYPE html>
       <html>
@@ -45,7 +45,7 @@ const getRegistrationEmailTemplate = (email, address, zipCode) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🏠 Welcome to Molly Maid!</h1>
+              <h1>Molly Maid - Quotation Ready!</h1>
             </div>
             <div class="content">
               <h2>Thank you for choosing Molly Maid!</h2>
@@ -526,6 +526,192 @@ app.post('/api/send-payment-confirmation', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Failed to send payment confirmation email',
+      details: error.message 
+    });
+  }
+});
+
+// Appointment confirmation email template
+const getAppointmentConfirmationEmailTemplate = (email, appointmentId, quotationId, service, amount, appointmentDate, appointmentTime, customerName, phoneNumber) => {
+  const paymentLink = `http://localhost:8080/payments?appointment=${appointmentId}`;
+  
+  return {
+    to: email,
+    from: process.env.SENDGRID_FROM_EMAIL,
+    subject: `Molly Maid - Appointment Confirmed ${appointmentId}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(to right, #CF0557, #FB4D94); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .appointment-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .detail-table { width: 100%; border-collapse: collapse; }
+            .detail-table td { padding: 10px; border-bottom: 1px solid #ddd; }
+            .detail-table tr:last-child td { border-bottom: none; }
+            .payment-section { background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800; }
+            .button { display: inline-block; background: linear-gradient(to right, #CF0557, #FB4D94); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; color: #666; margin-top: 30px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>📅 Appointment Confirmed!</h1>
+              <p style="margin: 10px 0; font-size: 18px;">Your service is scheduled</p>
+            </div>
+            <div class="content">
+              <h2 style="color: #071D49;">Dear ${customerName},</h2>
+              <p>Great news! Your appointment has been confirmed. Here are the details:</p>
+              
+              <div class="appointment-details">
+                <h3 style="color: #071D49; margin-top: 0;">Appointment Details</h3>
+                <table class="detail-table">
+                  <tr>
+                    <td><strong>Appointment ID:</strong></td>
+                    <td>${appointmentId}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Quotation Number:</strong></td>
+                    <td>${quotationId}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Service:</strong></td>
+                    <td>${service}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Date:</strong></td>
+                    <td>${appointmentDate}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Time:</strong></td>
+                    <td>${appointmentTime}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Customer Name:</strong></td>
+                    <td>${customerName}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Phone:</strong></td>
+                    <td>${phoneNumber}</td>
+                  </tr>
+                  <tr>
+                    <td><strong style="font-size: 18px;">Service Amount:</strong></td>
+                    <td><strong style="font-size: 18px; color: #CF0557;">$${amount.toFixed(2)}</strong></td>
+                  </tr>
+                </table>
+              </div>
+
+              <div class="payment-section">
+                <h3 style="color: #e65100; margin-top: 0;">⚠️ Payment Required</h3>
+                <p>To secure your appointment, please complete the payment at your earliest convenience.</p>
+                <p style="text-align: center;">
+                  <a href="${paymentLink}" class="button">Complete Payment Now</a>
+                </p>
+                <p style="font-size: 12px; color: #666; margin: 0;">
+                  Click the button above or copy this link to your browser:<br/>
+                  <code style="background: white; padding: 5px; border-radius: 3px; display: inline-block; margin-top: 5px;">${paymentLink}</code>
+                </p>
+              </div>
+
+              <p><strong>What's Next?</strong></p>
+              <ul>
+                <li>Complete your payment using the link above</li>
+                <li>You'll receive a confirmation call 24 hours before your appointment</li>
+                <li>Our team will arrive at the scheduled time</li>
+                <li>Keep this email for your records</li>
+              </ul>
+
+              <p style="margin-top: 30px;">If you need to reschedule or have any questions, please contact us at <a href="mailto:support@mollymaid.com" style="color: #CF0557;">support@mollymaid.com</a> or call us at (555) 123-4567.</p>
+              
+              <div class="footer">
+                <p>© 2025 Molly Maid. All rights reserved.</p>
+                <p>This is an automated appointment confirmation email.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+      Appointment Confirmed!
+      
+      Dear ${customerName},
+      
+      Great news! Your appointment has been confirmed.
+      
+      Appointment Details:
+      - Appointment ID: ${appointmentId}
+      - Quotation Number: ${quotationId}
+      - Service: ${service}
+      - Date: ${appointmentDate}
+      - Time: ${appointmentTime}
+      - Customer Name: ${customerName}
+      - Phone: ${phoneNumber}
+      - Service Amount: $${amount.toFixed(2)}
+      
+      Payment Required:
+      To secure your appointment, please complete the payment at your earliest convenience.
+      Payment Link: ${paymentLink}
+      
+      What's Next?
+      1. Complete your payment using the link above
+      2. You'll receive a confirmation call 24 hours before your appointment
+      3. Our team will arrive at the scheduled time
+      4. Keep this email for your records
+      
+      Questions? Contact us at support@mollymaid.com or call (555) 123-4567.
+      
+      © 2025 Molly Maid. All rights reserved.
+    `
+  };
+};
+
+// Appointment confirmation endpoint
+app.post('/api/send-appointment-confirmation', async (req, res) => {
+  try {
+    const { email, appointmentId, quotationId, service, amount, appointmentDate, appointmentTime, customerName, phoneNumber } = req.body;
+
+    // Validate required fields
+    if (!email || !appointmentId || !quotationId || !service || !amount || !appointmentDate || !appointmentTime || !customerName) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields' 
+      });
+    }
+
+    // Prepare email
+    const appointmentMsg = getAppointmentConfirmationEmailTemplate(
+      email, 
+      appointmentId, 
+      quotationId, 
+      service, 
+      amount, 
+      appointmentDate, 
+      appointmentTime, 
+      customerName, 
+      phoneNumber
+    );
+
+    // Send email via SendGrid
+    await sgMail.send(appointmentMsg);
+
+    console.log(`✅ Appointment confirmation email sent to: ${email} for appointment ${appointmentId}`);
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Appointment confirmation email sent successfully' 
+    });
+
+  } catch (error) {
+    console.error('❌ Error sending appointment confirmation email:', error.response?.body || error.message);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send appointment confirmation email',
       details: error.message 
     });
   }

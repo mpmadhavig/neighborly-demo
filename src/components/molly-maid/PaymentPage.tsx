@@ -148,7 +148,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
         <ul className="space-y-2 text-blue-700">
           <li>✓ You'll receive a confirmation email immediately</li>
           <li>✓ Our team will contact you within 24 hours to schedule your service</li>
-          <li>✓ Access your booking details anytime in your dashboard</li>
+          <li>✓ Access your booking details anytime</li>
         </ul>
       </div>
     </div>

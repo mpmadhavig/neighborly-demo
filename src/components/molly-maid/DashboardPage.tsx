@@ -22,7 +22,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onAcceptQuotation,
 
   return (
     <div className="max-w-7xl mx-auto">
-      <h1 className="text-4xl font-bold mb-4 text-[#071D49]">Welcome Back!</h1>
+      <h1 className="text-4xl font-bold mb-4 text-[#071D49]">Quotations</h1>
       <p className="text-xl text-gray-600 mb-8">
         Here's an overview of your cleaning services and quotations
       </p>
@@ -110,7 +110,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onAcceptQuotation,
             onClick={handleAcceptQuotation}
             className="flex-1 bg-gradient-to-r from-[#071D49] to-[#0a2d6b] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-md"
           >
-            Accept Quotation
+            Make Appointment
           </button>
           <button className="flex-1 border-2 border-[#CF0557] text-[#CF0557] py-3 rounded-lg font-semibold hover:bg-[#CF0557] hover:text-white transition">
             Request Changes

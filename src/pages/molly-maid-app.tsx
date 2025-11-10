@@ -7,13 +7,11 @@ import { Footer } from '../components/molly-maid/Footer';
 import { HomePage } from '../components/molly-maid/HomePage';
 import { ServicesPage } from '../components/molly-maid/ServicesPage';
 import { BookingPage } from '../components/molly-maid/BookingPage';
-import { BlogPage } from '../components/molly-maid/BlogPage';
-import { GiftsPage } from '../components/molly-maid/GiftsPage';
 import { DashboardPage } from '../components/molly-maid/DashboardPage';
-import { PaymentPage } from '../components/molly-maid/PaymentPage';
 import { ProfileAndPaymentPage } from '../components/molly-maid/ProfileAndPaymentPage';
 import { MobileVerificationPage } from '../components/molly-maid/MobileVerificationPage';
 import { PaymentsTab } from '../components/molly-maid/PaymentsTab';
+import { AppointmentsTab } from '../components/molly-maid/AppointmentsTab';
 import { useAsgardeoApi } from '@/hooks/useAsgardeoApi';
 import { sendRegistrationEmail } from '@/services/emailService';
 import { updateMyProfile } from '@/services/scimService';
@@ -67,25 +65,39 @@ export default function MollyMaidApp() {
   const [showAcceptQuotationModal, setShowAcceptQuotationModal] = useState(false);
   const [acceptQuotationEmail, setAcceptQuotationEmail] = useState<string>('');
   const [selectedQuotationForPayment, setSelectedQuotationForPayment] = useState<string | null>(null);
+  const [intendedDestination, setIntendedDestination] = useState<string | null>(null);
   
   // Track previous authentication state to detect sign-in events
   const prevAuthStateRef = useRef(authContext.state.isAuthenticated);
   
   const { initiateRegistrationFlow, submitRegistrationForm, verifyOtp, completeAuthentication, initiateOAuthFlow } = useAsgardeoApi();
 
-  // Sync activeTab with URL changes
+    // Sync activeTab with URL changes
   useEffect(() => {
     const path = location.pathname.slice(1);
     const newTab = path || 'home';
     
+    console.log('🔍 URL Sync - Path:', location.pathname, 'Tab:', newTab, 'Authenticated:', authContext.state.isAuthenticated, 'Loading:', authContext.state.isLoading);
+    
     // Don't block access if authentication is still loading (checking for active token)
     if (authContext.state.isLoading) {
+      console.log('⏳ Authentication still loading, waiting...');
       return;
     }
     
-    // Block dashboard access if not authenticated and show modal
-    if (newTab === 'dashboard' && !authContext.state.isAuthenticated) {
-      console.log('Dashboard access blocked - showing sign-in modal');
+    // Check if this is an OAuth callback (has code/state params)
+    const urlParams = new URLSearchParams(location.search);
+    const hasOAuthParams = urlParams.has('code') || urlParams.has('state') || urlParams.has('session_state');
+    
+    if (hasOAuthParams && !authContext.state.isAuthenticated) {
+      console.log('🔄 OAuth callback detected, waiting for token exchange...');
+      return; // Don't redirect during OAuth callback processing
+    }
+    
+    // Block quotations access if not authenticated and show modal
+    if (newTab === 'quotations' && !authContext.state.isAuthenticated) {
+      console.log('🚫 Quotations access blocked - showing sign-in modal');
+      setIntendedDestination(location.pathname + location.search);
       setShowSignInModal(true);
       navigate('/home');
       setActiveTab('home');
@@ -94,15 +106,28 @@ export default function MollyMaidApp() {
     
     // Block payments access if not authenticated and show modal
     if (newTab === 'payments' && !authContext.state.isAuthenticated) {
-      console.log('Payments access blocked - showing sign-in modal');
+      console.log('🚫 Payments access blocked - showing sign-in modal');
+      console.log('💾 Saving intended destination:', location.pathname + location.search);
+      setIntendedDestination(location.pathname + location.search);
       setShowSignInModal(true);
       navigate('/home');
       setActiveTab('home');
       return;
     }
     
+    // Block appointments access if not authenticated and show modal
+    if (newTab === 'appointments' && !authContext.state.isAuthenticated) {
+      console.log('🚫 Appointments access blocked - showing sign-in modal');
+      setIntendedDestination(location.pathname + location.search);
+      setShowSignInModal(true);
+      navigate('/home');
+      setActiveTab('home');
+      return;
+    }
+    
+    console.log('✅ Setting active tab to:', newTab);
     setActiveTab(newTab);
-  }, [location.pathname, authContext.state.isAuthenticated, authContext.state.isLoading, navigate]);
+  }, [location.pathname, location.search, authContext.state.isAuthenticated, authContext.state.isLoading, navigate]);
 
   // Navigate when activeTab changes
   const handleTabChange = (tab: string) => {
@@ -155,20 +180,64 @@ export default function MollyMaidApp() {
     }
   }, [location.search, authContext.state.isAuthenticated, authContext]);
 
-  // Redirect to dashboard only when user first signs in (not on page reload or tab changes)
+  // Redirect to intended destination or quotations when user first signs in
   useEffect(() => {
     const wasAuthenticated = prevAuthStateRef.current;
     const isAuthenticated = authContext.state.isAuthenticated;
     
     // Only redirect if user just signed in (transition from false to true)
     if (!wasAuthenticated && isAuthenticated) {
-      setActiveTab('dashboard');
-      navigate('/dashboard');
+      // Check ID token for payment_verification ACR
+      const checkAcrAndRedirect = async () => {
+        try {
+          const idToken = await authContext.getIDToken();
+          if (idToken) {
+            const tokenParts = idToken.split('.');
+            if (tokenParts.length === 3) {
+              const payload = JSON.parse(atob(tokenParts[1]));
+              
+              // If ACR is payment_verification, redirect to payments
+              if (payload.acr === 'payment_verification') {
+                console.log('🔄 ACR is payment_verification - redirecting to payments');
+                setActiveTab('payments');
+                navigate('/payments');
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error checking ACR:', error);
+        }
+        
+        // Continue with normal redirect logic
+        const currentPath = location.pathname.slice(1);
+        const isOnProtectedPage = ['payments', 'appointments', 'quotations'].includes(currentPath);
+        
+        if (isOnProtectedPage) {
+          // User is already on the right page (came from OAuth redirect), don't redirect
+          console.log('✅ User authenticated and already on protected page:', currentPath);
+        } else if (intendedDestination) {
+          // Redirect to the page they were trying to access
+          console.log('🔄 Redirecting to intended destination:', intendedDestination);
+          const path = intendedDestination.split('?')[0].slice(1); // Remove leading slash and query params
+          const tab = path || 'home';
+          setActiveTab(tab);
+          navigate(intendedDestination);
+          setIntendedDestination(null); // Clear after use
+        } else {
+          // Default redirect to quotations
+          console.log('🔄 Redirecting to default quotations page');
+          setActiveTab('quotations');
+          navigate('/quotations');
+        }
+      };
+      
+      checkAcrAndRedirect();
     }
     
     // Update ref for next render
     prevAuthStateRef.current = isAuthenticated;
-  }, [authContext.state.isAuthenticated, navigate]);
+  }, [authContext, intendedDestination, location.pathname, navigate]);
 
   // Auto-close sign-in modal if user becomes authenticated (has active token)
   useEffect(() => {
@@ -399,10 +468,9 @@ export default function MollyMaidApp() {
   };
 
   const handleAcceptQuotationFromDashboard = () => {
-    // Set the quotation ID and navigate to payments tab
-    setSelectedQuotationForPayment('Q-2025-001'); // This should come from dashboard
-    setActiveTab('payments');
-    navigate('/payments');
+    // Navigate to appointments tab to schedule appointment
+    navigate('/appointments');
+    setActiveTab('appointments');
   };
 
   const handleRegistrationErrorRestart = () => {
@@ -683,7 +751,17 @@ export default function MollyMaidApp() {
 
   const handleSignInFromModal = () => {
     setShowSignInModal(false);
-    authContext.signIn();
+    
+    // If there's an intended destination, use it as the redirect URL
+    if (intendedDestination) {
+      const fullUrl = `${window.location.origin}${intendedDestination}`;
+      console.log('🔐 Signing in with redirect to:', fullUrl);
+      authContext.signIn({
+        signInRedirectURL: fullUrl
+      });
+    } else {
+      authContext.signIn();
+    }
   };
 
   const handleCloseModal = () => {
@@ -955,8 +1033,7 @@ export default function MollyMaidApp() {
             onCorrectMobileNumber={handleCorrectMobileNumber}
           />
         )}
-        {activeTab === 'blog' && <BlogPage />}
-        {activeTab === 'dashboard' && authContext.state.isAuthenticated && (
+        {activeTab === 'quotations' && authContext.state.isAuthenticated && (
           <DashboardPage 
             onAcceptQuotation={handleAcceptQuotationFromDashboard}
             onNavigateToPayments={handleAcceptQuotationFromDashboard}
@@ -967,18 +1044,28 @@ export default function MollyMaidApp() {
             preselectedQuotationId={selectedQuotationForPayment}
             onPaymentComplete={() => {
               setSelectedQuotationForPayment(null);
-              setActiveTab('dashboard');
-              navigate('/dashboard');
+              setActiveTab('quotations');
+              navigate('/quotations');
             }}
             onShowMobileVerification={() => {
               setShowMobileVerification(true);
             }}
           />
         )}
-        {activeTab === 'gifts' && <GiftsPage setActiveTab={handleTabChange} />}
+        {activeTab === 'appointments' && authContext.state.isAuthenticated && (
+          <AppointmentsTab />
+        )}
+        {/* {activeTab === 'appointments' && !authContext.state.isAuthenticated && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            Please sign in to view appointments
+          </div>
+        )} */}
       </main>
 
       <Footer />
     </div>
   );
+
+  
+          
 }

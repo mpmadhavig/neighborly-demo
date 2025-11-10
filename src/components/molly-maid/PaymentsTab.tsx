@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '@asgardeo/auth-react';
-import { CheckCircle, CreditCard, User, Mail, Phone, Edit2 } from 'lucide-react';
+import { CheckCircle, CreditCard, User, Mail, Phone, Edit2, Calendar, Clock } from 'lucide-react';
 import { updateMyProfile } from '@/services/scimService';
 import { resendMobileVerificationCode } from '@/services/mobileVerificationService';
+import { storePaymentRecord } from '@/services/paymentStorage';
 
 interface PaymentsTabProps {
   onPaymentComplete?: () => void;
@@ -66,15 +67,91 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
   } | null>(null);
   const [emailSent, setEmailSent] = useState(false);
   const [showConfirmationBanner, setShowConfirmationBanner] = useState(false);
+  const [appointmentId, setAppointmentId] = useState<string | null>(null);
+  const [isAuthVerified, setIsAuthVerified] = useState(false);
 
-  // Auto-select quotation from URL query parameter
+  // Check if user just completed payment verification (came back from auth flow)
+  useEffect(() => {
+    const checkAuthVerification = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasAppointment = urlParams.get('appointment');
+      
+      // Restore saved payment data from localStorage (for card verification flow)
+      const savedPaymentData = localStorage.getItem('pendingPaymentData');
+      if (savedPaymentData) {
+        try {
+          const parsedData = JSON.parse(savedPaymentData);
+          setPaymentData(parsedData);
+          console.log('✅ Restored payment data from localStorage');
+          // Clear the saved data
+          localStorage.removeItem('pendingPaymentData');
+        } catch (error) {
+          console.error('❌ Error parsing saved payment data:', error);
+        }
+      }
+      
+      // Restore completed payment data (for post-payment auth flow)
+      const completedPaymentData = localStorage.getItem('completedPaymentData');
+      if (completedPaymentData) {
+        try {
+          const parsedData = JSON.parse(completedPaymentData);
+          setPaymentData(parsedData);
+          console.log('✅ Restored completed payment data from localStorage');
+          // Clear the saved data
+        //   localStorage.removeItem('completedPaymentData');
+        } catch (error) {
+          console.error('❌ Error parsing completed payment data:', error);
+        }
+      }
+      
+      // Only check if we have an appointment and user is authenticated
+      if (hasAppointment && authContext.state.isAuthenticated) {
+        try {
+          // Get the ID token
+          const idToken = await authContext.getIDToken();
+          
+          if (idToken) {
+            // Decode the ID token (it's a JWT with 3 parts: header.payload.signature)
+            const tokenParts = idToken.split('.');
+            if (tokenParts.length === 3) {
+              // Decode the payload (second part)
+              const payload = JSON.parse(atob(tokenParts[1]));
+              console.log('🔍 ID Token payload:', payload);
+              
+              // Check if acr claim exists and equals "payment_verification"
+              if (payload.acr === 'payment_verification') {
+                console.log('✅ User authenticated with payment_verification ACR - marking as verified');
+                setIsAuthVerified(true);
+              } else {
+                console.log('⚠️ User authenticated but ACR is not payment_verification:', payload.acr);
+                setIsAuthVerified(false);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error checking ID token:', error);
+          setIsAuthVerified(false);
+        }
+      }
+    };
+    
+    checkAuthVerification();
+  }, [authContext]);
+
+  // Auto-select quotation from URL query parameter and read appointment ID
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const quotationParam = urlParams.get('quotation');
+    const appointmentParam = urlParams.get('appointment');
     
     if (quotationParam && !selectedQuotation) {
       console.log('Auto-selecting quotation from URL:', quotationParam);
       setSelectedQuotation(quotationParam);
+    }
+    
+    if (appointmentParam) {
+      console.log('Appointment ID from URL:', appointmentParam);
+      setAppointmentId(appointmentParam);
     }
   }, [selectedQuotation]);
 
@@ -325,6 +402,50 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
     }
   };
 
+  const handleVerifyAuthentication = async () => {
+    console.log('🔐 Verifying authentication for payment...');
+    
+    // Add dummy card details if fields are empty
+    const dataToSave = {
+      cardNumber: paymentData.cardNumber || '4532 1234 5678 9010',
+      cardName: paymentData.cardName || 'John Doe',
+      expiryDate: paymentData.expiryDate || '12/26',
+      cvv: paymentData.cvv || '123'
+    };
+    
+    // Save to state if it was dummy data
+    if (!paymentData.cardNumber || !paymentData.cardName || !paymentData.expiryDate || !paymentData.cvv) {
+      setPaymentData(dataToSave);
+      console.log('✨ Added dummy card details for testing');
+    }
+    
+    // Save payment data to localStorage before redirecting
+    localStorage.setItem('pendingPaymentData', JSON.stringify(dataToSave));
+    console.log('💾 Saved payment data to localStorage');
+    
+    try {
+      // Get current URL with appointment parameter to return after re-authentication
+      const currentUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+      console.log('📍 Will redirect back to:', currentUrl);
+      
+      // Clear session and trigger re-authentication
+      Object.keys(window.sessionStorage).forEach((key) => {
+        if (key.startsWith('session_data-instance_0-')) {
+          window.sessionStorage.removeItem(key);
+        }
+      });
+      
+      await authContext.signIn({
+        acr_values: "payment_verification",
+        prompt: ""
+      });
+      
+    } catch (error) {
+      console.error('❌ Authentication verification failed:', error);
+      alert('Authentication verification failed. Please try again.');
+    }
+  };
+
   const handlePaymentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
@@ -424,19 +545,22 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
         paidQuotation.status = 'paid';
         console.log(`✅ Quotation ${paidQuotation.id} marked as paid`);
 
-        // Trigger sign-in with login_hint=payment for profile enrichment
-        console.log('Payment confirmed - triggering sign-in with login_hint=payment');
-        
-        Object.keys(window.sessionStorage).forEach((key) => {
-            if (key.startsWith('session_data-instance_0-')) {
-            window.sessionStorage.removeItem(key);
-            }
-        });
-        authContext.signIn({
-            acr_values: "payment",
-            prompt: "",
-            signInRedirectURL: "http://localhost:8080"
-        });
+        // Store payment details in in-memory database if appointment ID exists
+        if (appointmentId) {
+          const cardLastFour = paymentData.cardNumber.replace(/\s/g, '').slice(-4);
+          storePaymentRecord(appointmentId, {
+            appointmentId,
+            quotationId: paidQuotation.id,
+            service: paidQuotation.service,
+            amount: paidQuotation.amount,
+            cardLastFour,
+            cardName: paymentData.cardName,
+            customerName: `${userInfo.given_name} ${userInfo.family_name}`,
+            customerEmail: userInfo.email || 'customer@example.com',
+            paymentDate: new Date().toLocaleDateString()
+          });
+          console.log(`💾 Payment details stored for appointment ${appointmentId}`);
+        }
 
         // Show success modal and confirmation banner
         setShowPaymentSuccess(true);
@@ -450,14 +574,14 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
         });
       }
       
-      // Reset form
-      setPaymentData({
-        cardNumber: '',
-        cardName: '',
-        expiryDate: '',
-        cvv: ''
-      });
-      setSelectedQuotation(null);
+      // Don't reset form - keep card details visible
+      // setPaymentData({
+      //   cardNumber: '',
+      //   cardName: '',
+      //   expiryDate: '',
+      //   cvv: ''
+      // });
+      // setSelectedQuotation(null);
       
       // Don't call onPaymentComplete here - let user dismiss modal first
       // if (onPaymentComplete) {
@@ -578,8 +702,6 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
                 onClick={() => {
                   setShowPaymentSuccess(false);
                   setPaymentDetails(null);
-                  // Keep banner visible for user to dismiss manually
-                  // setShowConfirmationBanner(false);
                   
                   if (onPaymentComplete) {
                     onPaymentComplete();
@@ -597,345 +719,256 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#071D49] mb-2">Payments</h1>
         <p className="text-gray-600">
-          Select a quotation and complete your payment
+          Complete your payment details below
         </p>
       </div>
 
-      {/* User Details Section */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-[#071D49] flex items-center gap-2">
-              <User className="w-5 h-5 text-[#CF0557]" />
-              User Details
-            </h2>
-            {!isEditingProfile && (
-              <button
-                onClick={() => setIsEditingProfile(true)}
-                className="flex items-center gap-2 text-[#CF0557] hover:text-[#a00444] font-semibold transition text-sm"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Details
-              </button>
-            )}
+      {/* Payment Details Form - Top Section */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <h2 className="text-xl font-bold text-[#071D49] mb-6 flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-[#CF0557]" />
+          Payment Details
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-[#071D49] mb-2">
+              Card Number
+            </label>
+            <input
+              type="text"
+              name="cardNumber"
+              value={paymentData.cardNumber}
+              onChange={handlePaymentInputChange}
+              placeholder="1234 5678 9012 3456"
+              maxLength={19}
+              required
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
+            />
           </div>
-          
-          {isEditingProfile ? (
-            <div className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={profileData.firstName}
-                    onChange={handleProfileInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-                    placeholder="John"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={profileData.lastName}
-                    onChange={handleProfileInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-                    placeholder="Doe"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                  Mobile Number *
-                </label>
-                <input
-                  type="tel"
-                  name="mobileNumber"
-                  value={profileData.mobileNumber}
-                  onChange={handleProfileInputChange}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-                  placeholder="+1 (555) 123-4567"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">Include country code (e.g., +1 for US)</p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={isUpdatingProfile}
-                  className="flex-1 bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditingProfile(false);
-                    // Reset to original values
-                    const phoneNumbers = userInfo.phone_numbers;
-                    const phoneNumber = userInfo.phone_number;
-                    const mobileNumber = (
-                      phoneNumbers 
-                        ? (typeof phoneNumbers === 'string' ? phoneNumbers : phoneNumbers[0])
-                        : phoneNumber
-                    ) || userInfo.pendingPhoneNumberVerified || '';
-                    setProfileData({
-                      firstName: userInfo.given_name || '',
-                      lastName: userInfo.family_name || '',
-                      mobileNumber: mobileNumber
-                    });
-                  }}
-                  disabled={isUpdatingProfile}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-              </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-[#071D49] mb-2">
+              Cardholder Name
+            </label>
+            <input
+              type="text"
+              name="cardName"
+              value={paymentData.cardName}
+              onChange={handlePaymentInputChange}
+              placeholder="John Doe"
+              required
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-[#071D49] mb-2">
+                Expiry Date
+              </label>
+              <input
+                type="text"
+                name="expiryDate"
+                value={paymentData.expiryDate}
+                onChange={handlePaymentInputChange}
+                placeholder="MM/YY"
+                maxLength={5}
+                required
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
+              />
             </div>
-          ) : (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <User className="w-5 h-5 text-[#CF0557]" />
-                <div>
-                  <p className="text-sm text-gray-500">First Name</p>
-                  <p className="font-semibold text-[#071D49]">
-                    {userInfo.given_name ? `${userInfo.given_name}` : 'Not available'}
-                  </p>
-                </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#071D49] mb-2">
+                CVV
+              </label>
+              <input
+                type="text"
+                name="cvv"
+                value={paymentData.cvv}
+                onChange={handlePaymentInputChange}
+                placeholder="123"
+                maxLength={4}
+                required
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
+              />
+            </div>
+          </div>
+
+          {/* Verify Identity Button - Only show when not verified */}
+          {!isAuthVerified && (
+            <div className="pt-4 border-t border-gray-200">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                <p className="text-sm text-blue-800">
+                  🔐 Please verify your identity to save payment card details
+                </p>
               </div>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Mail className="w-5 h-5 text-[#CF0557]" />
-                <div>
-                  <p className="text-sm text-gray-500">Last Name</p>
-                  <p className="font-semibold text-[#071D49]">{userInfo.family_name ? `${userInfo.family_name}` : 'Not available'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Phone className="w-5 h-5 text-[#CF0557]" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500">Mobile Number</p>
-                  <p className="font-semibold text-[#071D49]">
-                    {(() => {
-                      const phoneNumbers = userInfo.phone_numbers;
-                      const phoneNumber = userInfo.phone_number;
-                      return (
-                        phoneNumbers 
-                          ? (typeof phoneNumbers === 'string' ? phoneNumbers : phoneNumbers[0])
-                          : phoneNumber
-                      ) || userInfo.pendingPhoneNumberVerified || 'Not available';
-                    })()}
-                  </p>
-                </div>
-                {isPhoneVerified && (userInfo.phone_numbers || userInfo.phone_number || userInfo.pendingPhoneNumberVerified) && (
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-xs text-green-600 font-semibold">Verified</span>
-                  </div>
-                )}
-                {!isPhoneVerified && !isEditingProfile && (userInfo.pendingPhoneNumberVerified || userInfo.phone_numbers || userInfo.phone_number) && (
-                  <button
-                    onClick={handleInitiateVerification}
-                    className="text-xs text-[#CF0557] hover:text-[#a00444] font-semibold underline"
-                  >
-                    Verify
-                  </button>
-                )}
+              <button
+                type="button"
+                onClick={handleVerifyAuthentication}
+                disabled={isAuthVerified}
+                className="w-full bg-[#071D49] text-white py-3 px-6 rounded-lg font-bold hover:bg-[#0a2558] transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save Card Details
+              </button>
+            </div>
+          )}
+
+          {isAuthVerified && (
+            <div className="pt-4 border-t border-gray-200">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Identity verified - Card details saved securely
+                </p>
               </div>
             </div>
           )}
-        </div>
 
-      {/* Quotation Selection Section */}
-      <div className={`bg-white rounded-xl shadow-lg p-6 mb-8 ${!isUserDetailsComplete ? 'opacity-60' : ''}`}>
-        <h2 className="text-xl font-bold text-[#071D49] mb-4">Select Quotation</h2>
-        {!isUserDetailsComplete && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-yellow-800">
-              ⚠️ Please complete your user details above before selecting a quotation.
-            </p>
-          </div>
-        )}
+          <p className="text-xs text-gray-500 text-center mt-4">
+            🔒 Your payment information is secure and encrypted
+          </p>
+        </div>
+      </div>
+
+      {/* Appointments List Section */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <h2 className="text-xl font-bold text-[#071D49] mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-[#CF0557]" />
+          Select Appointment to Pay
+        </h2>
+        
         <div className="space-y-3">
-          {quotations.map((quotation) => (
+          {[
+            {
+              id: 'APT-2025-001',
+              quotationId: 'Q-2025-001',
+              service: 'Deep Cleaning Service',
+              amount: 150.00,
+              date: 'Nov 15, 2025',
+              time: '10:00 AM',
+              status: 'pending' as const
+            },
+            {
+              id: 'APT-2025-002',
+              quotationId: 'Q-2025-002',
+              service: 'Regular Cleaning Service',
+              amount: 89.99,
+              date: 'Nov 18, 2025',
+              time: '2:00 PM',
+              status: 'pending' as const
+            }
+          ].map((appointment) => (
             <div
-              key={quotation.id}
-              onClick={() => isUserDetailsComplete && setSelectedQuotation(quotation.id)}
-              className={`p-4 border-2 rounded-lg transition ${
-                !isUserDetailsComplete 
-                  ? 'cursor-not-allowed bg-gray-100 border-gray-200'
-                  : selectedQuotation === quotation.id
-                  ? 'border-[#CF0557] bg-pink-50 cursor-pointer'
-                  : 'border-gray-200 hover:border-[#CF0557] hover:bg-gray-50 cursor-pointer'
-            }`}
+              key={appointment.id}
+              onClick={() => {
+                setSelectedQuotation(appointment.quotationId);
+                setAppointmentId(appointment.id);
+              }}
+              className={`p-4 border-2 rounded-lg transition cursor-pointer ${
+                appointmentId === appointment.id
+                  ? 'border-[#CF0557] bg-pink-50'
+                  : 'border-gray-200 hover:border-[#CF0557] hover:bg-gray-50'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-[#071D49]">{quotation.id}</span>
-                    {selectedQuotation === quotation.id && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-[#071D49]">{appointment.id}</span>
+                    {appointmentId === appointment.id && (
                       <CheckCircle className="w-5 h-5 text-[#CF0557]" />
                     )}
                   </div>
-                  <p className="text-gray-600 text-sm mt-1">{quotation.service}</p>
-                  <p className="text-gray-500 text-xs mt-1">{quotation.date}</p>
+                  <p className="text-gray-600 text-sm font-semibold">{appointment.service}</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-1 text-gray-500 text-xs">
+                      <Calendar className="w-4 h-4" />
+                      {appointment.date}
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-500 text-xs">
+                      <Clock className="w-4 h-4" />
+                      {appointment.time}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Quotation: {appointment.quotationId}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-[#CF0557]">
-                    ${quotation.amount.toFixed(2)}
+                    ${appointment.amount.toFixed(2)}
                   </p>
                   <span className={`text-xs px-2 py-1 rounded-full ${
-                    quotation.status === 'pending' 
+                    appointment.status === 'pending' 
                       ? 'bg-yellow-100 text-yellow-800' 
                       : 'bg-green-100 text-green-800'
                   }`}>
-                    {quotation.status}
+                    {appointment.status}
                   </span>
                 </div>
               </div>
             </div>
           ))}
         </div>
+        
+        {!appointmentId && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+            <p className="text-sm text-blue-800">
+              ℹ️ Select an appointment above to proceed with payment
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Payment Form Section */}
-      {selectedQuotation && isUserDetailsComplete && (
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Quotation Summary Card */}
-          <div className="md:col-span-1">
-            <div className="bg-gradient-to-br from-[#CF0557] to-[#FB4D94] rounded-xl shadow-lg p-6 text-white sticky top-24">
-              <h3 className="text-lg font-bold mb-4">Quotation Summary</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-pink-100 text-sm">Quotation Number</p>
-                  <p className="font-bold text-lg">{selectedQuotationData?.id}</p>
-                </div>
-                <div>
-                  <p className="text-pink-100 text-sm">Service</p>
-                  <p className="font-semibold">{selectedQuotationData?.service}</p>
-                </div>
-                <div>
-                  <p className="text-pink-100 text-sm">Date</p>
-                  <p className="font-semibold">{selectedQuotationData?.date}</p>
-                </div>
-                <div className="pt-3 border-t border-pink-300">
-                  <p className="text-pink-100 text-sm">Total Amount</p>
-                  <p className="text-3xl font-bold">${selectedQuotationData?.amount.toFixed(2)}</p>
-                </div>
+      {/* Confirm Payment Button - Only show if appointment selected AND card details filled */}
+      {selectedQuotation && appointmentId && selectedQuotationData && (
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-100 rounded-xl p-6 mb-6">
+            <h3 className="text-lg font-bold text-[#071D49] mb-4">Payment Summary</h3>
+            <div className="space-y-3">
+              <div className="bg-white rounded-lg p-3 border border-blue-100">
+                <p className="text-gray-600 text-sm">Appointment ID</p>
+                <p className="font-bold text-lg text-[#071D49]">{appointmentId}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Quotation Number</p>
+                <p className="font-bold text-lg text-[#071D49]">{selectedQuotationData.id}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Service</p>
+                <p className="font-semibold text-[#071D49]">{selectedQuotationData.service}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Date</p>
+                <p className="font-semibold text-[#071D49]">{selectedQuotationData.date}</p>
+              </div>
+              <div className="pt-3 border-t border-blue-200">
+                <p className="text-gray-600 text-sm">Total Amount</p>
+                <p className="text-3xl font-bold text-[#CF0557]">${selectedQuotationData.amount.toFixed(2)}</p>
               </div>
             </div>
           </div>
 
-          {/* Payment Form */}
-          <div className="md:col-span-2">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-[#071D49] mb-6 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-[#CF0557]" />
-                Payment Details
-              </h2>
-              <form onSubmit={handlePaymentSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                    Card Number
-                  </label>
-                  <input
-                    type="text"
-                    name="cardNumber"
-                    value={paymentData.cardNumber}
-                    onChange={handlePaymentInputChange}
-                    placeholder="1234 5678 9012 3456"
-                    maxLength={19}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                    Cardholder Name
-                  </label>
-                  <input
-                    type="text"
-                    name="cardName"
-                    value={paymentData.cardName}
-                    onChange={handlePaymentInputChange}
-                    placeholder="John Doe"
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      name="expiryDate"
-                      value={paymentData.expiryDate}
-                      onChange={handlePaymentInputChange}
-                      placeholder="MM/YY"
-                      maxLength={5}
-                      required
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                      CVV
-                    </label>
-                    <input
-                      type="text"
-                      name="cvv"
-                      value={paymentData.cvv}
-                      onChange={handlePaymentInputChange}
-                      placeholder="123"
-                      maxLength={4}
-                      required
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white py-4 rounded-lg font-bold hover:opacity-90 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Processing Payment...
-                    </span>
-                  ) : (
-                    `Pay $${selectedQuotationData?.amount.toFixed(2)}`
-                  )}
-                </button>
-
-                <p className="text-xs text-gray-500 text-center mt-4">
-                  🔒 Your payment information is secure and encrypted
-                </p>
-              </form>
+          {/* Check if card details are filled */}
+          {(!paymentData.cardNumber || !paymentData.cardName || !paymentData.expiryDate || !paymentData.cvv) ? (
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 text-center">
+              <p className="text-amber-800 font-semibold">
+                ⚠️ Please fill in all payment card details above to proceed
+              </p>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* No Selection Message */}
-      {!selectedQuotation && isUserDetailsComplete && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center">
-          <CreditCard className="w-16 h-16 text-blue-400 mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">
-            Please select a quotation above to proceed with payment
-          </p>
+          ) : (
+            <button
+              onClick={handlePaymentSubmit}
+              disabled={isProcessing}
+              className="w-full bg-gradient-to-r from-[#CF0557] to-[#FB4D94] text-white py-4 rounded-lg font-bold hover:opacity-90 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isProcessing ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Processing Payment...
+                </span>
+              ) : (
+                `Confirm Payment - $${selectedQuotationData.amount.toFixed(2)}`
+              )}
+            </button>
+          )}
         </div>
       )}
     </div>

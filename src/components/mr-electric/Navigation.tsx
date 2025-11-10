@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, Wrench, Phone, FileText, Award, Zap, LogIn, LogOut, User } from 'lucide-react';
+import { UserProfile } from './UserProfile';
 
 interface NavigationProps {
   activeTab: string;
@@ -35,13 +36,14 @@ export const Navigation: React.FC<NavigationProps> = ({
               <span className="hidden md:inline">1-888-MRELECTRIC</span>
             </a>
             {isAuthenticated ? (
-              <button 
-                onClick={onSignOut}
-                className="flex items-center gap-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-2 rounded-lg font-semibold hover:from-gray-500 hover:to-gray-600 transition shadow-md"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
+            //   <button 
+            //     onClick={onSignOut}
+            //     className="flex items-center gap-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-2 rounded-lg font-semibold hover:from-gray-500 hover:to-gray-600 transition shadow-md"
+            //   >
+            //     <LogOut className="w-4 h-4" />
+            //     Sign Out
+            //   </button>
+            <UserProfile />
             ) : (
               <button 
                 onClick={onSignIn}
