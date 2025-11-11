@@ -112,12 +112,12 @@ export default function MrElectricApp() {
             {/* Modal Body */}
             <form onSubmit={handleUsernameSubmit} className="p-6">
               <p className="text-gray-700 text-center mb-6">
-                Enter your username or email to continue
+                Enter your email or mobile number to continue
               </p>
 
               <div className="mb-6">
                 <label className="block text-sm font-semibold mb-2 text-blue-900">
-                  Username or Email *
+                  Email or Mobile Number *
                 </label>
                 <input
                   type="text"

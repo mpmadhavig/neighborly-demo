@@ -70,6 +70,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [isAuthVerified, setIsAuthVerified] = useState(false);
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
+  const [isPaymentDetailsExpanded, setIsPaymentDetailsExpanded] = useState(true); // Start expanded to prompt payment details
 
   // Check if user just completed payment verification (came back from auth flow)
   useEffect(() => {
@@ -105,8 +106,8 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
         }
       }
       
-      // Only check if we have an appointment and user is authenticated
-      if (hasAppointment && authContext.state.isAuthenticated) {
+      // Check ACR value in ID token if user is authenticated
+      if (authContext.state.isAuthenticated) {
         try {
           // Get the ID token
           const idToken = await authContext.getIDToken();
@@ -123,15 +124,23 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
               if (payload.acr === 'payment_verification') {
                 console.log('✅ User authenticated with payment_verification ACR - marking as verified');
                 setIsAuthVerified(true);
+                setIsPaymentDetailsExpanded(false); // Collapse when verified (details already saved)
+                
+                // Auto-select first appointment when verified
+                setAppointmentId('APT-2025-001');
+                setSelectedQuotation('Q-2025-001');
+                console.log('🎯 Auto-selected first appointment for verified user');
               } else {
                 console.log('⚠️ User authenticated but ACR is not payment_verification:', payload.acr);
                 setIsAuthVerified(false);
+                setIsPaymentDetailsExpanded(true); // Expand when not verified (need to add details)
               }
             }
           }
         } catch (error) {
           console.error('❌ Error checking ID token:', error);
           setIsAuthVerified(false);
+          setIsPaymentDetailsExpanded(false);
         }
       }
     };
@@ -249,160 +258,6 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
     loadUserInfo();
   }, [authContext]);
 
-  const handleProfileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveProfile = async () => {
-    setIsUpdatingProfile(true);
-
-    try {
-      console.log('Saving profile data:', profileData);
-
-      const accessToken = await authContext.getAccessToken();
-      
-      if (!accessToken) {
-        console.warn('No access token available, skipping profile update');
-        setIsEditingProfile(false);
-        setUserInfo(prev => ({
-          ...prev,
-          given_name: profileData.firstName,
-          family_name: profileData.lastName,
-          phone_number: profileData.mobileNumber
-        }));
-        return;
-      }
-
-      console.log('Attempting to update profile using /Me endpoint');
-      
-      const result = await updateMyProfile(
-        {
-          firstName: profileData.firstName,
-          lastName: profileData.lastName,
-          mobileNumber: profileData.mobileNumber,
-        },
-        accessToken
-      );
-
-      if (!result.success) {
-        console.warn('⚠️ Profile update failed:', result.error);
-        
-        // Update local state anyway
-        setUserInfo(prev => ({
-          ...prev,
-          given_name: profileData.firstName,
-          family_name: profileData.lastName,
-          phone_numbers: [profileData.mobileNumber]
-        }));
-        
-        // Check if phone is already verified
-        if (isPhoneVerified) {
-          console.log('📱 Phone number is already verified, no verification needed');
-          setIsEditingProfile(false);
-        } else {
-          // Show mobile verification if phone is not verified
-          console.log('📱 Phone number not verified, showing mobile verification');
-          setIsEditingProfile(false);
-          
-          // Send verification code and show verification page
-          try {
-            console.log('📤 Attempting to send verification code...');
-            const sendResult = await resendMobileVerificationCode(accessToken);
-            if (sendResult.success) {
-              console.log('✅ Verification code sent successfully');
-              // Trigger parent to show mobile verification page
-              if (onShowMobileVerification) {
-                onShowMobileVerification();
-              }
-            } else {
-              console.error('❌ Failed to send verification code:', sendResult.error);
-              alert('Failed to send verification code. Please try again.');
-            }
-          } catch (sendError) {
-            console.error('❌ Error sending verification code:', sendError);
-            alert('Failed to send verification code. Please try again.');
-          }
-        }
-        return;
-      } else {
-        console.log('✅ Profile updated successfully in Asgardeo!');
-        
-        // Update local state with new values
-        setUserInfo(prev => ({
-          ...prev,
-          given_name: profileData.firstName,
-          family_name: profileData.lastName,
-          phone_numbers: [profileData.mobileNumber]
-        }));
-      }
-      
-      // Check if phone is already verified
-      if (isPhoneVerified) {
-        console.log('📱 Phone number is already verified, skipping mobile verification step');
-        setIsEditingProfile(false);
-      } else {
-        console.log('📱 Phone number not verified, prompting for mobile verification');
-        setIsEditingProfile(false);
-        
-        // Automatically send verification code and show verification page
-        try {
-          console.log('📤 Sending verification code to mobile number...');
-          const sendResult = await resendMobileVerificationCode(accessToken);
-          if (sendResult.success) {
-            console.log('✅ Verification code sent successfully');
-            // Trigger parent to show mobile verification page
-            if (onShowMobileVerification) {
-              onShowMobileVerification();
-            }
-          } else {
-            console.error('❌ Failed to send verification code:', sendResult.error);
-            alert('Failed to send verification code. Please try again.');
-          }
-        } catch (sendError) {
-          console.error('❌ Error sending verification code:', sendError);
-          alert('Failed to send verification code. Please try again.');
-        }
-      }
-
-    } catch (error) {
-      console.error('Error in profile submission:', error);
-      setIsEditingProfile(false);
-    } finally {
-      setIsUpdatingProfile(false);
-    }
-  };
-
-  const handleInitiateVerification = async () => {
-    console.log('📱 Initiating mobile verification...');
-
-    try {
-      const accessToken = await authContext.getAccessToken();
-      
-      if (!accessToken) {
-        alert('No access token available');
-        return;
-      }
-
-      console.log('📤 Sending verification code to mobile number...');
-      const result = await resendMobileVerificationCode(accessToken);
-      
-      if (result.success) {
-        console.log('✅ Verification code sent successfully');
-        // Trigger parent to show mobile verification page
-        if (onShowMobileVerification) {
-          onShowMobileVerification();
-        }
-      } else {
-        console.error('❌ Failed to send verification code:', result.error);
-        alert('Failed to send verification code. Please try again.');
-      }
-    } catch (err) {
-      console.error('❌ Error sending verification code:', err);
-      alert('Failed to send verification code. Please try again.');
-    }
-  };
-
   const handleVerifyAuthentication = async () => {
     console.log('🔐 Verifying authentication for payment...');
     
@@ -454,6 +309,13 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
   const handlePaymentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    
+    // Mark as unverified when user changes payment details
+    if (isAuthVerified) {
+      setIsAuthVerified(false);
+      setIsPaymentDetailsExpanded(true); // Expand to show the form
+      console.log('🔄 Payment details changed - marking as unverified');
+    }
     
     // Format card number with spaces
     if (name === 'cardNumber') {
@@ -772,109 +634,147 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
       {/* Payment Details Form - Top Section */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-bold text-[#071D49] mb-6 flex items-center gap-2">
-          <CreditCard className="w-5 h-5 text-[#CF0557]" />
-          Payment Details
-        </h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-[#071D49] mb-2">
-              Card Number
-            </label>
-            <input
-              type="text"
-              name="cardNumber"
-              value={paymentData.cardNumber}
-              onChange={handlePaymentInputChange}
-              placeholder="1234 5678 9012 3456"
-              maxLength={19}
-              required
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-[#071D49] mb-2">
-              Cardholder Name
-            </label>
-            <input
-              type="text"
-              name="cardName"
-              value={paymentData.cardName}
-              onChange={handlePaymentInputChange}
-              placeholder="John Doe"
-              required
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                Expiry Date
-              </label>
-              <input
-                type="text"
-                name="expiryDate"
-                value={paymentData.expiryDate}
-                onChange={handlePaymentInputChange}
-                placeholder="MM/YY"
-                maxLength={5}
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#071D49] mb-2">
-                CVV
-              </label>
-              <input
-                type="text"
-                name="cvv"
-                value={paymentData.cvv}
-                onChange={handlePaymentInputChange}
-                placeholder="123"
-                maxLength={4}
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
-              />
-            </div>
-          </div>
-
-          {/* Verify Identity Button - Only show when not verified */}
-          {!isAuthVerified && (
-            <div className="pt-4 border-t border-gray-200">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                <p className="text-sm text-blue-800">
-                  🔐 Please verify your identity to save payment card details
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowVerificationPrompt(true)}
-                disabled={isAuthVerified}
-                className="w-full bg-[#071D49] text-white py-3 px-6 rounded-lg font-bold hover:bg-[#0a2558] transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Save Card Details
-              </button>
-            </div>
-          )}
-
-          {isAuthVerified && (
-            <div className="pt-4 border-t border-gray-200">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <p className="text-sm text-green-800 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Identity verified - Card details saved securely
-                </p>
-              </div>
-            </div>
-          )}
-
-          <p className="text-xs text-gray-500 text-center mt-4">
-            🔒 Your payment information is secure and encrypted
-          </p>
+        <div 
+          className="flex items-center justify-between cursor-pointer mb-6"
+          onClick={() => setIsPaymentDetailsExpanded(!isPaymentDetailsExpanded)}
+        >
+          <h2 className="text-xl font-bold text-[#071D49] flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-[#CF0557]" />
+            Payment Details
+          </h2>
+          <button className="text-[#071D49] hover:text-[#CF0557] transition">
+            {isPaymentDetailsExpanded ? (
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            )}
+          </button>
         </div>
+        
+        {isPaymentDetailsExpanded && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-[#071D49] mb-2">
+                Card Number
+              </label>
+              <input
+                type="text"
+                name="cardNumber"
+                value={paymentData.cardNumber}
+                onChange={handlePaymentInputChange}
+                placeholder="1234 5678 9012 3456"
+                maxLength={19}
+                required
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[#071D49] mb-2">
+                Cardholder Name
+              </label>
+              <input
+                type="text"
+                name="cardName"
+                value={paymentData.cardName}
+                onChange={handlePaymentInputChange}
+                placeholder="John Doe"
+                required
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-[#071D49] mb-2">
+                  Expiry Date
+                </label>
+                <input
+                  type="text"
+                  name="expiryDate"
+                  value={paymentData.expiryDate}
+                  onChange={handlePaymentInputChange}
+                  placeholder="MM/YY"
+                  maxLength={5}
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-[#071D49] mb-2">
+                  CVV
+                </label>
+                <input
+                  type="text"
+                  name="cvv"
+                  value={paymentData.cvv}
+                  onChange={handlePaymentInputChange}
+                  placeholder="123"
+                  maxLength={4}
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#CF0557] transition"
+                />
+              </div>
+            </div>
+
+            {/* Verify Identity Button - Only show when not verified */}
+            {!isAuthVerified && (
+              <div className="pt-4 border-t border-gray-200">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                  <p className="text-sm text-blue-800">
+                    🔐 Please verify your identity to save payment card details
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowVerificationPrompt(true)}
+                  disabled={isAuthVerified}
+                  className="w-full bg-[#071D49] text-white py-3 px-6 rounded-lg font-bold hover:bg-[#0a2558] transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Save Card Details
+                </button>
+              </div>
+            )}
+
+            {isAuthVerified && (
+              <div className="pt-4 border-t border-gray-200">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-sm text-green-800 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Identity verified - Card details saved securely
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-500 text-center mt-4">
+              🔒 Your payment information is secure and encrypted
+            </p>
+          </div>
+        )}
+        
+        {!isPaymentDetailsExpanded && (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-500">
+              {isAuthVerified ? (
+                <div className="pt-4 border-t border-gray-200">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm text-green-800 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Identity verified - Card details saved securely
+                    </p>
+                    </div>
+                </div>
+              ) : (
+                "Click to expand and add payment details"
+              )}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Appointments List Section */}
