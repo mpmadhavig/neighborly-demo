@@ -69,6 +69,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
   const [showConfirmationBanner, setShowConfirmationBanner] = useState(false);
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [isAuthVerified, setIsAuthVerified] = useState(false);
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
 
   // Check if user just completed payment verification (came back from auth flow)
   useEffect(() => {
@@ -446,6 +447,11 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
     }
   };
 
+  const handleVerificationPromptConfirm = () => {
+    setShowVerificationPrompt(false);
+    handleVerifyAuthentication();
+  };
+
   const handlePaymentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
@@ -609,6 +615,47 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Identity Verification Prompt Modal */}
+      {showVerificationPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl transform transition-all">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                <CreditCard className="h-10 w-10 text-[#071D49]" />
+              </div>
+              <h3 className="text-2xl font-bold text-[#071D49] mb-2">
+                Identity Verification Required
+              </h3>
+              <p className="text-gray-600 mb-6">
+                We need to verify your identity before proceeding with payment detail updates. This helps keep your payment information secure.
+              </p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-800">
+                  🔐 You will be redirected to complete identity verification. Your card details will be saved securely.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={handleVerificationPromptConfirm}
+                  className="w-full bg-gradient-to-r from-[#071D49] to-[#0a2558] text-white py-3 rounded-lg font-semibold hover:opacity-90 transition shadow-lg"
+                >
+                  Continue to Verification
+                </button>
+                
+                <button
+                  onClick={() => setShowVerificationPrompt(false)}
+                  className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Payment Confirmation Banner - Fixed at top, above modal */}
       {showConfirmationBanner && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] w-full max-w-2xl px-4 animate-slide-down">
@@ -804,7 +851,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
               </div>
               <button
                 type="button"
-                onClick={handleVerifyAuthentication}
+                onClick={() => setShowVerificationPrompt(true)}
                 disabled={isAuthVerified}
                 className="w-full bg-[#071D49] text-white py-3 px-6 rounded-lg font-bold hover:bg-[#0a2558] transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
