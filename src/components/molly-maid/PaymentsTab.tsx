@@ -298,7 +298,6 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
       
     } catch (error) {
       console.error('❌ Authentication verification failed:', error);
-      alert('Authentication verification failed. Please try again.');
     }
   };
 
@@ -458,7 +457,6 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
       
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
     } finally {
       setIsProcessing(false);
     }

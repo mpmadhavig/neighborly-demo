@@ -389,7 +389,7 @@ export default function MollyMaidApp() {
 
       // Check if OTP verification is still incomplete (invalid OTP)
       if (result.flowStatus === 'INCOMPLETE') {
-        alert('Invalid OTP. Please try again.');
+        console.log('Invalid OTP. Please try again.');
         setOtp(''); // Clear the OTP input to allow retry
         return;
       }
@@ -433,8 +433,6 @@ export default function MollyMaidApp() {
         setShowOtpInput(false);
         setOtpFlowData(null);
         setShowSuccessBanner(true);
-
-        // alert('Registration and authentication completed successfully!');
       } else {
         console.warn('Unexpected flow status:', result.flowStatus);
       }
@@ -449,7 +447,7 @@ export default function MollyMaidApp() {
         setShowRegistrationErrorModal(true);
       } else {
         // For other errors, show generic alert
-        alert('An error occurred. Please try again.');
+        console.log('An error occurred. Please try again.');
       }
     }
   };
@@ -745,7 +743,6 @@ export default function MollyMaidApp() {
       
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
     }
   };
 

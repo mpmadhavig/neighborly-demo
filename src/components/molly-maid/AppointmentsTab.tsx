@@ -182,34 +182,6 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
           phone_numbers: [profileData.mobileNumber]
         }));
         
-        // Check if phone is already verified
-        // if (isPhoneVerified) {
-        //   console.log('📱 Phone number is already verified, no verification needed');
-        //   setIsEditingProfile(false);
-        // } else {
-        //   // Show mobile verification if phone is not verified
-        //   console.log('📱 Phone number not verified, showing mobile verification');
-        //   setIsEditingProfile(false);
-          
-        //   // Send verification code and show verification page
-        //   try {
-        //     console.log('📤 Attempting to send verification code...');
-        //     const sendResult = await resendMobileVerificationCode(accessToken);
-        //     if (sendResult.success) {
-        //       console.log('✅ Verification code sent successfully');
-        //       // Trigger parent to show mobile verification page
-        //       if (onShowMobileVerification) {
-        //         onShowMobileVerification();
-        //       }
-        //     } else {
-        //       console.error('❌ Failed to send verification code:', sendResult.error);
-        //       alert('Failed to send verification code. Please try again.');
-        //     }
-        //   } catch (sendError) {
-        //     console.error('❌ Error sending verification code:', sendError);
-        //     alert('Failed to send verification code. Please try again.');
-        //   }
-        // }
         return;
       } else {
         console.log('✅ Profile updated successfully in Asgardeo!');
@@ -231,24 +203,6 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
         console.log('📱 Phone number not verified, prompting for mobile verification');
         setIsEditingProfile(false);
         
-        // Automatically send verification code and show verification page
-        try {
-          console.log('📤 Sending verification code to mobile number...');
-          const sendResult = await resendMobileVerificationCode(accessToken);
-          if (sendResult.success) {
-            console.log('✅ Verification code sent successfully');
-            // Trigger parent to show mobile verification page
-            if (onShowMobileVerification) {
-              onShowMobileVerification();
-            }
-          } else {
-            console.error('❌ Failed to send verification code:', sendResult.error);
-            alert('Failed to send verification code. Please try again.');
-          }
-        } catch (sendError) {
-          console.error('❌ Error sending verification code:', sendError);
-          alert('Failed to send verification code. Please try again.');
-        }
       }
 
     } catch (error) {
@@ -334,7 +288,6 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
 
     } catch (error) {
       console.error('Error creating appointment:', error);
-      alert('Failed to create appointment. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

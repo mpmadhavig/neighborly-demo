@@ -21,7 +21,6 @@ export const ContactPage: React.FC<ContactPageProps> = ({ setActiveTab }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Contact form submitted:', formData);
-    alert('Thank you for contacting Mr. Electric! We\'ll get back to you shortly.');
     setFormData({
       name: '',
       phone: '',

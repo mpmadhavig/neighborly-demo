@@ -404,7 +404,7 @@ const getMrElectricPromotionalEmail = (email, customerName) => {
               </ul>
 
               <center>
-                <a href="http://localhost:8081" class="cta-button">
+                <a href="http://localhost:8081" class="cta-button" style="color: white;">
                   ⚡ Schedule Your Service Now ⚡
                 </a>
               </center>
@@ -609,7 +609,7 @@ const getAppointmentConfirmationEmailTemplate = (email, appointmentId, quotation
                 <h3 style="color: #e65100; margin-top: 0;">⚠️ Payment Required</h3>
                 <p>To secure your appointment, please complete the payment at your earliest convenience.</p>
                 <p style="text-align: center;">
-                  <a href="${paymentLink}" class="button">Complete Payment Now</a>
+                  <a href="${paymentLink}" class="button" style="color: white;">Complete Payment Now</a>
                 </p>
                 <p style="font-size: 12px; color: #666; margin: 0;">
                   Click the button above or copy this link to your browser:<br/>
