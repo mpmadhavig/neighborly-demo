@@ -48,7 +48,7 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
   const [isEditingProfile, setIsEditingProfile] = useState(true);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
-  const [selectedQuotation, setSelectedQuotation] = useState<string | null>(preselectedQuotationId || null);
+  const [selectedQuotation, setSelectedQuotation] = useState<string | null>(preselectedQuotationId || 'Q-2025-001');
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentTime, setAppointmentTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,13 +65,13 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
       amount: 150.00,
       date: 'Nov 10, 2025',
       status: 'pending'
-    },
-    {
-      id: 'Q-2025-002',
-      service: 'Regular Cleaning Service',
-      amount: 89.99,
-      date: 'Nov 8, 2025',
-      status: 'pending'
+    // },
+    // {
+    //   id: 'Q-2025-002',
+    //   service: 'Regular Cleaning Service',
+    //   amount: 89.99,
+    //   date: 'Nov 8, 2025',
+    //   status: 'pending'
     }
   ];
 
@@ -183,33 +183,33 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
         }));
         
         // Check if phone is already verified
-        if (isPhoneVerified) {
-          console.log('📱 Phone number is already verified, no verification needed');
-          setIsEditingProfile(false);
-        } else {
-          // Show mobile verification if phone is not verified
-          console.log('📱 Phone number not verified, showing mobile verification');
-          setIsEditingProfile(false);
+        // if (isPhoneVerified) {
+        //   console.log('📱 Phone number is already verified, no verification needed');
+        //   setIsEditingProfile(false);
+        // } else {
+        //   // Show mobile verification if phone is not verified
+        //   console.log('📱 Phone number not verified, showing mobile verification');
+        //   setIsEditingProfile(false);
           
-          // Send verification code and show verification page
-          try {
-            console.log('📤 Attempting to send verification code...');
-            const sendResult = await resendMobileVerificationCode(accessToken);
-            if (sendResult.success) {
-              console.log('✅ Verification code sent successfully');
-              // Trigger parent to show mobile verification page
-              if (onShowMobileVerification) {
-                onShowMobileVerification();
-              }
-            } else {
-              console.error('❌ Failed to send verification code:', sendResult.error);
-              alert('Failed to send verification code. Please try again.');
-            }
-          } catch (sendError) {
-            console.error('❌ Error sending verification code:', sendError);
-            alert('Failed to send verification code. Please try again.');
-          }
-        }
+        //   // Send verification code and show verification page
+        //   try {
+        //     console.log('📤 Attempting to send verification code...');
+        //     const sendResult = await resendMobileVerificationCode(accessToken);
+        //     if (sendResult.success) {
+        //       console.log('✅ Verification code sent successfully');
+        //       // Trigger parent to show mobile verification page
+        //       if (onShowMobileVerification) {
+        //         onShowMobileVerification();
+        //       }
+        //     } else {
+        //       console.error('❌ Failed to send verification code:', sendResult.error);
+        //       alert('Failed to send verification code. Please try again.');
+        //     }
+        //   } catch (sendError) {
+        //     console.error('❌ Error sending verification code:', sendError);
+        //     alert('Failed to send verification code. Please try again.');
+        //   }
+        // }
         return;
       } else {
         console.log('✅ Profile updated successfully in Asgardeo!');

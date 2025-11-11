@@ -49,7 +49,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
     mobileNumber: ''
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [selectedQuotation, setSelectedQuotation] = useState<string | null>(preselectedQuotationId || null);
+  const [selectedQuotation, setSelectedQuotation] = useState<string | null>(preselectedQuotationId || 'APT-2025-002');
   const [paymentData, setPaymentData] = useState({
     cardNumber: '',
     cardName: '',
@@ -174,13 +174,13 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
       amount: 150.00,
       date: 'Nov 10, 2025',
       status: 'pending'
-    },
-    {
-      id: 'Q-2025-002',
-      service: 'Regular Cleaning Service',
-      amount: 89.99,
-      date: 'Nov 8, 2025',
-      status: 'pending'
+    // },
+    // {
+    //   id: 'Q-2025-002',
+    //   service: 'Regular Cleaning Service',
+    //   amount: 89.99,
+    //   date: 'Nov 8, 2025',
+    //   status: 'pending'
     }
   ];
 
@@ -847,15 +847,15 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
               date: 'Nov 15, 2025',
               time: '10:00 AM',
               status: 'pending' as const
-            },
-            {
-              id: 'APT-2025-002',
-              quotationId: 'Q-2025-002',
-              service: 'Regular Cleaning Service',
-              amount: 89.99,
-              date: 'Nov 18, 2025',
-              time: '2:00 PM',
-              status: 'pending' as const
+            // },
+            // {
+            //   id: 'APT-2025-002',
+            //   quotationId: 'Q-2025-002',
+            //   service: 'Regular Cleaning Service',
+            //   amount: 89.99,
+            //   date: 'Nov 18, 2025',
+            //   time: '2:00 PM',
+            //   status: 'pending' as const
             }
           ].map((appointment) => (
             <div
