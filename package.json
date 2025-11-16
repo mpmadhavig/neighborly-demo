@@ -6,10 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:mr-electric": "vite --config vite.config.mr-electric.ts",
-    "dev:both": "concurrently \"npm run dev\" \"npm run dev:mr-electric\"",
     "server": "node server/index.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
-    "dev:all-brands": "concurrently \"npm run dev\" \"npm run dev:mr-electric\" \"npm run server\"",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:mr-electric\" \"npm run server\"",
     "build": "vite build",
     "build:mr-electric": "vite build --config vite.config.mr-electric.ts",
     "build:dev": "vite build --mode development",
